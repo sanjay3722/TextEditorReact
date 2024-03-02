@@ -12,110 +12,178 @@ import "../App.css";
 
 const TextEditor = () => {
   const [editorState, setEditorState] = useState(() => {
-    const savedContent = localStorage.getItem("editorContent");
-    if (savedContent) {
-      return EditorState.createWithContent(
-        convertFromRaw(JSON.parse(savedContent))
-      );
+    const sc = localStorage.getItem("editorContent");
+    if (sc) {
+      return EditorState.createWithContent(convertFromRaw(JSON.parse(sc)));
     }
     return EditorState.createEmpty();
   });
 
-  useEffect(() => {
-    const contentState = editorState.getCurrentContent();
-    localStorage.setItem(
-      "editorContent",
-      JSON.stringify(convertToRaw(contentState))
-    );
-  }, [editorState]);
+  const [saveRequested, setSaveRequested] = useState(false);
 
-  const onChange = (newEditorState) => {
-    setEditorState(newEditorState);
+  useEffect(() => {
+    if (saveRequested) {
+      const contentState = editorState.getCurrentContent();
+      localStorage.setItem(
+        "editorContent",
+        JSON.stringify(convertToRaw(contentState))
+      );
+      setSaveRequested(false);
+    }
+  }, [editorState, saveRequested]);
+
+  const onChange = (nes) => {
+    setEditorState(nes);
   };
 
-  const handleKeyCommand = (command) => {
-    const newState = RichUtils.handleKeyCommand(editorState, command);
-    if (newState) {
-      onChange(newState);
+  const handleKeyCommand = (cmd) => {
+    const ns = RichUtils.handleKeyCommand(editorState, cmd);
+    if (ns) {
+      onChange(ns);
       return "handled";
     }
     return "not-handled";
   };
 
-  const handleBeforeInput = (chars, editorState) => {
-    const selection = editorState.getSelection();
-    const contentState = editorState.getCurrentContent();
+  const handleBeforeInput = (ch, es) => {
+    const selection = es.getSelection();
+    const contentState = es.getCurrentContent();
     const block = contentState.getBlockForKey(selection.getStartKey());
     const text = block.getText();
 
-    const triggerMap = {
-      "#": "header-one",
-      "**": "UNDERLINE",
-      "*": "BOLD",
-      "***": "COLOR_STYLE", // Change color as needed
-    };
+    if (ch === " " && text.startsWith("# ")) {
+      const newContentState = Modifier.replaceText(
+        contentState,
+        selection.merge({
+          anchorOffset: 0,
+          focusOffset: 2,
+        }),
+        "",
+        null
+      );
 
-    for (const trigger in triggerMap) {
-      if (chars === " " && text.startsWith(`${trigger} `)) {
-        if (trigger === "***") {
-          const contentStateWithEntity = contentState.createEntity(
-            "COLOR_STYLE",
-            "IMMUTABLE",
-            { color: "red" } // Change color as needed
-          );
-          const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
+      const newEditorState = EditorState.push(
+        editorState,
+        newContentState,
+        "remove-range"
+      );
 
-          const newEditorState = EditorState.set(editorState, {
-            currentContent: Modifier.applyEntity(
-              contentStateWithEntity,
-              selection.merge({
-                anchorOffset: 0,
-                focusOffset: trigger.length,
-              }),
-              entityKey
-            ),
-          });
+      const nextState = RichUtils.toggleBlockType(newEditorState, "header-one");
+      setEditorState(nextState);
 
-          const nextState = EditorState.forceSelection(
-            newEditorState,
-            newEditorState.getCurrentContent().getSelectionAfter()
-          );
-          setEditorState(nextState);
-          return "handled";
-        } else {
-          const style = triggerMap[trigger];
-          const newContentState = Modifier.replaceText(
-            contentState,
-            selection.merge({
-              anchorOffset: 0,
-              focusOffset: trigger.length,
-            }),
-            "",
-            null
-          );
-          const newEditorState = EditorState.push(
-            editorState,
-            newContentState,
-            "remove-range"
-          );
-          const nextState =
-            style === "header-one"
-              ? RichUtils.toggleBlockType(newEditorState, style)
-              : RichUtils.toggleInlineStyle(newEditorState, style);
-          setEditorState(nextState);
-          return "handled";
-        }
-      }
+      return "handled";
+    }
+
+    if (ch === " " && text.startsWith("* ")) {
+      const newContentState = Modifier.replaceText(
+        contentState,
+        selection.merge({
+          anchorOffset: 0,
+          focusOffset: 2,
+        }),
+        "",
+        null
+      );
+
+      const newEditorState = EditorState.push(
+        editorState,
+        newContentState,
+        "remove-range"
+      );
+
+      const nextState = RichUtils.toggleInlineStyle(newEditorState, "BOLD");
+      setEditorState(nextState);
+
+      return "handled";
+    }
+
+    if (ch === " " && text.startsWith("** ")) {
+      const newContentState = Modifier.replaceText(
+        contentState,
+        selection.merge({
+          anchorOffset: 0,
+          focusOffset: 3,
+        }),
+        "",
+        null
+      );
+
+      const newEditorState = EditorState.push(
+        editorState,
+        newContentState,
+        "remove-range"
+      );
+
+      const nextState = EditorState.setInlineStyleOverride(
+        newEditorState,
+        new Set(["red"])
+      );
+      setEditorState(nextState);
+
+      return "handled";
+    }
+
+    if (ch === " " && text.startsWith("*** ")) {
+      const newContentState = Modifier.replaceText(
+        contentState,
+        selection.merge({
+          anchorOffset: 0,
+          focusOffset: 4,
+        }),
+        "",
+        null
+      );
+
+      const newEditorState = EditorState.push(
+        editorState,
+        newContentState,
+        "remove-range"
+      );
+
+      const nextState = RichUtils.toggleInlineStyle(
+        newEditorState,
+        "UNDERLINE"
+      );
+      setEditorState(nextState);
+
+      return "handled";
+    }
+
+    if (ch === " " && text.startsWith("````` ")) {
+      const newContentState = Modifier.replaceText(
+        contentState,
+        selection.merge({
+          anchorOffset: 0,
+          focusOffset: 6,
+        }),
+        "",
+        null
+      );
+
+      const newEditorState = EditorState.push(
+        editorState,
+        newContentState,
+        "remove-range"
+      );
+
+      const nextState = RichUtils.toggleBlockType(newEditorState, "code-block");
+      setEditorState(nextState);
+
+      return "handled";
     }
 
     return "not-handled";
   };
 
+  const handleSave = () => {
+    setSaveRequested(true);
+  };
+
   return (
     <div className="RichEditor-root">
       <div className="RichEditor-controls">
-        <button onClick={() => localStorage.removeItem("editorContent")}>
-          Clear Saved Content
+        <button onClick={handleSave} className="save-btn">
+          Save
         </button>
       </div>
       <div className="RichEditor-editor">
@@ -124,7 +192,7 @@ const TextEditor = () => {
           handleKeyCommand={handleKeyCommand}
           handleBeforeInput={handleBeforeInput}
           onChange={onChange}
-          placeholder="Tell a story..."
+          placeholder="Start typing..."
           spellCheck={true}
         />
       </div>

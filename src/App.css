@@ -1,3 +1,45 @@
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body{
+  font-family: monospace;
+  font-size: 1rem;
+  color: #060606;
+}
+
+.container{
+  margin: 0 auto;
+  width: 1180px;
+  max-width: 100%;
+  position: relative;
+}
+
+.header{
+  text-align: center;
+  font-weight: bold;
+  width: 100%;
+  margin: 40px 0 20px;
+}
+
+.container .save-btn{
+  position: absolute;
+  top: -5px;
+  right: 24px;
+  padding: 5px 20px;
+  background: #fff;
+  font-family: monospace;
+  border: 2px solid #060606;
+  border-radius: 3px;
+  box-shadow: 2px 2px 2px #060606;
+  cursor: pointer;
+}
+.container .save-btn:hover{
+  transition: 0.3s all ease-in-out;
+  box-shadow: 1px 1px 1px #060606;
+}
 .RED_STYLE {
   color: red;
 }
